@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 import sqlite3
 
 class InvoiceApp:
@@ -39,7 +40,6 @@ class InvoiceApp:
 
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS Invoice (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            invoice_number TEXT UNIQUE NOT NULL,
                             client_id INTEGER NOT NULL,
                             invoice_date DATE NOT NULL,
                             FOREIGN KEY(client_id) REFERENCES Client(id))""")
@@ -193,14 +193,18 @@ class InvoiceApp:
         else:
             machine_combo.set('')  # Clear the selection if there are machines
 
-        fields = ["Description", "Date (YYYY-MM-DD)", "User   ", "Hours"]
+        fields = ["Description", "Date (YYYY-MM-DD)", "User    ", "Hours"]
         entries = {}
         
         for i, field in enumerate(fields, start=7):
             ttk.Label(window, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
             entries[field] = ttk.Entry(window)
             entries[field].grid(row=i, column=1, padx=5, pady=5)
-        
+
+        # Set today's date as the default value for the date entry
+        today_date = datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
+        entries["Date (YYYY-MM-DD)"].insert(0, today_date)  # Set the default date
+
         def save_task():
             machine_id = machine_combo.get().split(" - ")[0]
             if machine_id == "None":
@@ -211,7 +215,7 @@ class InvoiceApp:
                     VALUES (?, ?, ?, ?, ?)""",
                     (machine_id, entries["Description"].get(), 
                      entries["Date (YYYY-MM-DD)"].get(),
-                     entries["User   "].get(), entries["Hours"].get())
+                     entries["User    "].get(), entries["Hours"].get())
                 )
                 self.conn.commit()
                 messagebox.showinfo("Success", "Task added successfully!")
@@ -220,7 +224,6 @@ class InvoiceApp:
                 messagebox.showerror("Error", str(e))
         
         ttk.Button(window, text="Save Task", command=save_task).grid(row=11, columnspan=2, pady=10)
-
 # Example usage:
 
     def add_invoice(self):
@@ -228,14 +231,15 @@ class InvoiceApp:
         window.title("Add New Invoice")
         
         # Get tasks for dropdown
-        self.cursor.execute("SELECT id, description FROM Task")
-        tasks = self.cursor.fetchall()
+        self.cursor.execute("SELECT id, registre_comars FROM Client")
+        Client = self.cursor.fetchall()
         
-        ttk.Label(window, text="Task:").grid(row=0, column=0, padx=5, pady=5)
-        task_var = tk.StringVar()
-        task_combo = ttk.Combobox(window, textvariable=task_var, 
-                                   values=[f"{t[0]} - {t[1]}" for t in tasks])
-        task_combo.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(window, text="Client:").grid(row=0, column=0, padx=5, pady=5)
+        Client_var = tk.StringVar()
+        Client_combo = ttk.Combobox(window, textvariable=Client_var, 
+                                   values=[f"{t[0]} - {t[1]}" for t in Client])
+        Client_combo.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(window, text="Add Client", command=self.add_client).grid(row=0, column=2, padx=10, pady=5)
 
         fields = ["Invoice Number", "Client ID", "Machine ID", "Invoice Date (YYYY-MM-DD)"]
         entries = {}
@@ -246,7 +250,7 @@ class InvoiceApp:
             entries[field].grid(row=i, column=1, padx=5, pady=5)
         
         def save_invoice():
-            task_id = task_combo.get().split(" - ")[0]
+            Client_id = Client_combo.get().split(" - ")[0]
             try:
                 self.cursor.execute(
                     """INSERT INTO Invoice (invoice_number, client_id, machine_id, invoice_date)
