@@ -20,7 +20,7 @@ class InvoiceApp:
         # Buttons
         ttk.Button(self.main_frame, text="Add Client", command=self.add_client).grid(row=0, column=0, padx=10, pady=5)
         ttk.Button(self.main_frame, text="Add Machine", command=self.add_machine).grid(row=0, column=1, padx=10, pady=5)
-        ttk.Button(self.main_frame, text="Add Task", command=self.add_task).grid(row=0, column=2, padx=10, pady=5)
+        # ttk.Button(self.main_frame, text="Add Task", command=self.add_task).grid(row=0, column=2, padx=10, pady=5)
         ttk.Button(self.main_frame, text="Add Invoice", command=self.add_invoice).grid(row=0, column=3, padx=10, pady=5)
 
         self.client_combo = None  # Initialize client_combo to None
@@ -149,84 +149,84 @@ class InvoiceApp:
         
         ttk.Button(window, text="Save", command=save_machine).grid(row=5, columnspan=2, pady=10)
 
-    def add_task(self):
-        window = tk.Toplevel(self.root)
-        window.title("Add New Task")
+    # def add_task(self):
+    #     window = tk.Toplevel(self.root)
+    #     window.title("Add New Task")
 
-        ttk.Label(window, text="Machine Name:").grid(row=1, column=0, padx=5, pady=5)
-        name_entry = ttk.Entry(window)
-        name_entry.grid(row=1, column=1, padx=5, pady=5)
-        ttk.Label(window, text="Machine model:").grid(row=2, column=0, padx=5, pady=5)
-        model_entry = ttk.Entry(window)
-        model_entry.grid(row=2, column=1, padx=5, pady=5)
-        ttk.Label(window, text="Machine company:").grid(row=3, column=0, padx=5, pady=5)
-        company_entry = ttk.Entry(window)
-        company_entry.grid(row=3, column=1, padx=5, pady=5)
-        ttk.Label(window, text="Machine ns:").grid(row=4, column=0, padx=5, pady=5)
-        ns_entry = ttk.Entry(window)
-        ns_entry.grid(row=4, column=1, padx=5, pady=5)
+    #     ttk.Label(window, text="Machine Name:").grid(row=1, column=0, padx=5, pady=5)
+    #     name_entry = ttk.Entry(window)
+    #     name_entry.grid(row=1, column=1, padx=5, pady=5)
+    #     ttk.Label(window, text="Machine model:").grid(row=2, column=0, padx=5, pady=5)
+    #     model_entry = ttk.Entry(window)
+    #     model_entry.grid(row=2, column=1, padx=5, pady=5)
+    #     ttk.Label(window, text="Machine company:").grid(row=3, column=0, padx=5, pady=5)
+    #     company_entry = ttk.Entry(window)
+    #     company_entry.grid(row=3, column=1, padx=5, pady=5)
+    #     ttk.Label(window, text="Machine ns:").grid(row=4, column=0, padx=5, pady=5)
+    #     ns_entry = ttk.Entry(window)
+    #     ns_entry.grid(row=4, column=1, padx=5, pady=5)
 
-        def save_machine():
-            try:
-                self.cursor.execute(
-                    "INSERT INTO Machine (name, model, company, ns) VALUES (?, ?, ?, ?)",
-                    (name_entry.get(), model_entry.get(), company_entry.get(), ns_entry.get())
-                )
-                self.conn.commit()
-                messagebox.showinfo("Success", "Machine added successfully!")
-                window.destroy()
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
+    #     def save_machine():
+    #         try:
+    #             self.cursor.execute(
+    #                 "INSERT INTO Machine (name, model, company, ns) VALUES (?, ?, ?, ?)",
+    #                 (name_entry.get(), model_entry.get(), company_entry.get(), ns_entry.get())
+    #             )
+    #             self.conn.commit()
+    #             messagebox.showinfo("Success", "Machine added successfully!")
+    #             window.destroy()
+    #         except Exception as e:
+    #             messagebox.showerror("Error", str(e))
 
-        ttk.Button(window, text="Save", command=save_machine).grid(row=5, columnspan=2, pady=10)
+    #     ttk.Button(window, text="Save", command=save_machine).grid(row=5, columnspan=2, pady=10)
 
-        # Get machines for dropdown
-        self.cursor.execute("SELECT id, name FROM Machine")
-        machines = self.cursor.fetchall()
+    #     # Get machines for dropdown
+    #     self.cursor.execute("SELECT id, name FROM Machine")
+    #     machines = self.cursor.fetchall()
 
-        ttk.Label(window, text="Machine:").grid(row=6, column=0, padx=5, pady=5)
-        machine_var = tk.StringVar()
-        self.machine_combo = ttk.Combobox(window, textvariable=machine_var, 
-                                           values=[f"{m[0]} - {m[1]}" for m in machines])
-        self.machine_combo.grid(row=6, column=1, padx=5, pady=5)
+    #     ttk.Label(window, text="Machine:").grid(row=6, column=0, padx=5, pady=5)
+    #     machine_var = tk.StringVar()
+    #     self.machine_combo = ttk.Combobox(window, textvariable=machine_var, 
+    #                                        values=[f"{m[0]} - {m[1]}" for m in machines])
+    #     self.machine_combo.grid(row=6, column=1, padx=5, pady=5)
 
-        # Set default to "None" if no machines exist
-        if not machines:
-            self.machine_combo.set("None")
-        else:
-            self.machine_combo.set('')  # Clear the selection if there are machines
+    #     # Set default to "None" if no machines exist
+    #     if not machines:
+    #         self.machine_combo.set("None")
+    #     else:
+    #         self.machine_combo.set('')  # Clear the selection if there are machines
 
-        fields = ["Description", "Date (YYYY-MM-DD)", "User  ", "Hours"]
-        entries = {}
+    #     fields = ["Description", "Date (YYYY-MM-DD)", "User  ", "Hours"]
+    #     entries = {}
         
-        for i, field in enumerate(fields, start=7):
-            ttk.Label(window, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
-            entries[field] = ttk.Entry(window)
-            entries[field].grid(row=i, column=1, padx=5, pady=5)
+    #     for i, field in enumerate(fields, start=7):
+    #         ttk.Label(window, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
+    #         entries[field] = ttk.Entry(window)
+    #         entries[field].grid(row=i, column=1, padx=5, pady=5)
 
-        # Set today's date as the default value for the date entry
-        today_date = datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
-        entries["Date (YYYY-MM-DD)"].insert(0, today_date)  # Set the default date
+    #     # Set today's date as the default value for the date entry
+    #     today_date = datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
+    #     entries["Date (YYYY-MM-DD)"].insert(0, today_date)  # Set the default date
 
-        def save_task():
-            machine_id = self.machine_combo.get().split(" - ")[0]
-            if machine_id == "None":
-                machine_id = None  # Handle the case where "None" is selected
-            try:
-                self.cursor.execute(
-                    """INSERT INTO Task (machine_id, description, date, user, hours)
-                    VALUES (?, ?, ?, ?, ?)""",
-                    (machine_id, entries["Description"].get(), 
-                     entries["Date (YYYY-MM-DD)"].get(),
-                     entries["User  "].get(), entries["Hours"].get())
-                )
-                self.conn.commit()
-                messagebox.showinfo("Success", "Task added successfully!")
-                window.destroy()
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
+    #     def save_task():
+    #         machine_id = self.machine_combo.get().split(" - ")[0]
+    #         if machine_id == "None":
+    #             machine_id = None  # Handle the case where "None" is selected
+    #         try:
+    #             self.cursor.execute(
+    #                 """INSERT INTO Task (machine_id, description, date, user, hours)
+    #                 VALUES (?, ?, ?, ?, ?)""",
+    #                 (machine_id, entries["Description"].get(), 
+    #                  entries["Date (YYYY-MM-DD)"].get(),
+    #                  entries["User  "].get(), entries["Hours"].get())
+    #             )
+    #             self.conn.commit()
+    #             messagebox.showinfo("Success", "Task added successfully!")
+    #             window.destroy()
+    #         except Exception as e:
+    #             messagebox.showerror("Error", str(e))
         
-        ttk.Button(window, text="Save Task", command=save_task).grid(row=11, columnspan=2, pady=10)
+    #     ttk.Button(window, text="Save Task", command=save_task).grid(row=11, columnspan=2, pady=10)
 
     def add_invoice(self):
         window = tk.Toplevel(self.root)
@@ -237,9 +237,9 @@ class InvoiceApp:
         clients = self.cursor.fetchall()
         
         ttk.Label(window, text="Client:").grid(row=0, column=0, padx=5, pady=5)
-        Client_var = tk.StringVar()
-        self.client_combo = ttk.Combobox(window, textvariable=Client_var, 
-                                           values=[f"{c[0]} - {c[1]}" for c in clients])
+        client_var = tk.StringVar()
+        self.client_combo = ttk.Combobox(window, textvariable=client_var, 
+                                        values=[f"{c[0]} - {c[1]}" for c in clients])
         self.client_combo.grid(row=0, column=1, padx=5, pady=5)
         ttk.Button(window, text="Add Client", command=self.add_client).grid(row=0, column=2, padx=10, pady=5)
 
@@ -255,46 +255,53 @@ class InvoiceApp:
         today_date = datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
         entries["Date (YYYY-MM-DD)"].insert(0, today_date)  # Set the default date
 
-        # ttk.Label(window, text="Machine:").grid(row=5, column=0, padx=5, pady=5)
-        # machine_var = tk.StringVar()
-        # self.machine_combo = ttk.Combobox(window, textvariable=machine_var)
-        # self.machine_combo.grid(row=5, column=1, padx=5, pady=5)
-
-        # ttk.Button(window, text="Add Client", command=self.add_machine).grid(row=5, column=2, padx=10, pady=5)
-        # Get clients for dropdown
+        # Get machines for dropdown
         self.cursor.execute("SELECT id, name FROM Machine")
-        clients = self.cursor.fetchall()
+        machines = self.cursor.fetchall()
         
         ttk.Label(window, text="Machine:").grid(row=2, column=0, padx=5, pady=5)
-        Client_var = tk.StringVar()
-        self.machine_combo = ttk.Combobox(window, textvariable=Client_var, 
-                                           values=[f"{c[0]} - {c[1]}" for c in clients])
+        machine_var = tk.StringVar()
+        self.machine_combo = ttk.Combobox(window, textvariable=machine_var, 
+                                        values=[f"{m[0]} - {m[1]}" for m in machines])
         self.machine_combo.grid(row=2, column=1, padx=5, pady=5)
-        ttk.Button(window, text="Add machine", command=self.add_machine).grid(row=2, column=2, padx=10, pady=5)
+        ttk.Button(window, text="Add Machine", command=self.add_machine).grid(row=2, column=2, padx=10, pady=5)
 
-        fields = ["Description", "User  ", "Hours"]
-        entries = {}
-        
-        for i, field in enumerate(fields, start=6):
+        fields = ["Description", "User ", "Hours"]
+        for i, field in enumerate(fields, start=3):
             ttk.Label(window, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
             entries[field] = ttk.Entry(window)
             entries[field].grid(row=i, column=1, padx=5, pady=5)
 
         def save_invoice():
             client_id = self.client_combo.get().split(" - ")[0]
-            machine_id = self.machine_combo.get().split (" - ")[0]
+            machine_id = self.machine_combo.get().split(" - ")[0]
             try:
+                # Insert the task and get the new task ID
                 self.cursor.execute(
-                    """INSERT INTO Invoice (client_id, invoice_date)
-                    VALUES (?, ?)""",
-                    (client_id, entries["Date (YYYY-MM-DD)"].get())
+                    "INSERT INTO Task (machine_id, description, date, user, hours) VALUES (?, ?, ?, ?, ?)",
+                    (machine_id, entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User "].get(), entries["Hours"].get())
                 )
                 self.conn.commit()
-                messagebox.showinfo("Success", "Invoice added successfully!")
-                window.destroy()
+                
+                # Get the ID of the newly created task
+                task_id = self.cursor.lastrowid  # Store the new task ID in variable task_id
+                messagebox.showinfo("Success", f"Task added successfully! Task ID: {task_id}")
+                
+                try:
+                    # Insert the invoice
+                    self.cursor.execute(
+                        """INSERT INTO Invoice (client_id, invoice_date, task_id)
+                        VALUES (?, ?, ?)""",
+                        (client_id, entries["Date (YYYY-MM-DD)"].get(), task_id)
+                    )
+                    self.conn.commit()
+                    messagebox.showinfo("Success", "Invoice added successfully!")
+                    window.destroy()
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to add invoice: {str(e)}")
             except Exception as e:
-                messagebox.showerror("Error", str(e))
-        
+                messagebox.showerror("Error", f"Failed to add task: {str(e)}")
+            
         ttk.Button(window, text="Save", command=save_invoice).grid(row=10, columnspan=2, pady=10)
 
     def __del__(self):
