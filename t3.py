@@ -31,14 +31,15 @@ class InvoiceApp:
         self.form_frame = ttk.Frame(self.main_frame)
         self.form_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Frame for invoice list
-        self.invoice_frame = ttk.Frame(self.main_frame)
-        self.invoice_frame.pack(fill=tk.BOTH, expand=True)
+        # Frame for list display
+        self.list_frame = ttk.Frame(self.main_frame)
+        self.list_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.invoice_listbox = tk.Listbox(self.invoice_frame, height=10)
-        self.invoice_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Create Treeviews for different data types
+        self.create_treeviews()
 
-        self.refresh_invoice_list()  # Load invoices into the listbox
+        # Show invoices by default
+        self.show_invoices()
 
     def create_tables(self):
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS Client (
@@ -92,29 +93,152 @@ class InvoiceApp:
         
         self.conn.commit()
 
+    def create_treeviews(self):
+        # Create Treeview for Invoices
+        self.invoice_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Client", "machine", "user", "hour", "date"), show='headings')
+        self.invoice_treeview.heading("ID", text="ID")
+        self.invoice_treeview.heading("Client", text="Client")
+        self.invoice_treeview.heading("machine", text="machine")
+        self.invoice_treeview.heading("user", text="user")
+        self.invoice_treeview.heading("hour", text="hour")
+        self.invoice_treeview.heading("date", text="date")
+        self.invoice_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Create Treeview for Clients
+        self.client_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Registre Comars", "NIF", "NIS", "AI"), show='headings')
+        self.client_treeview.heading("ID", text="ID")
+        self.client_treeview.heading("Registre Comars", text="Registre Comars")
+        self.client_treeview.heading("NIF", text="NIF")
+        self.client_treeview.heading("NIS", text="NIS")
+        self.client_treeview.heading("AI", text="AI")
+        self.client_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Create Treeview for Machines
+        self.machine_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Name", "Model", "Company", "NS"), show='headings')
+        self.machine_treeview.heading("ID", text="ID")
+        self.machine_treeview.heading("Name", text="Name")
+        self.machine_treeview.heading("Model", text="Model")
+        self.machine_treeview.heading("Company", text="Company")
+        self.machine_treeview.heading("NS", text="NS")
+        self.machine_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Create Treeview for Spare Parts
+        self.spare_part_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Name", "Serial Number", "Machine ID"), show='headings')
+        self.spare_part_treeview.heading("ID", text="ID")
+        self.spare_part_treeview.heading("Name", text="Name")
+        self.spare_part_treeview.heading("Serial Number", text="Serial Number")
+        self.spare_part_treeview.heading("Machine ID", text="Machine ID")
+        self.spare_part_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Hide all treeviews initially
+        self.hide_all_treeviews()
+
+    def hide_all_treeviews(self):
+        """Hide all treeviews."""
+        self.invoice_treeview.pack_forget()
+        self.client_treeview.pack_forget()
+        self.machine_treeview.pack_forget()
+        self.spare_part_treeview.pack_forget()
+
+    def show_invoices(self):
+        """Show the invoice treeview and refresh its data."""
+        self.hide_all_treeviews()
+        self.invoice_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.refresh_invoice_list()
+
+    def show_machines(self):
+        """Show the machine treeview and refresh its data."""
+        self.hide_all_treeviews()
+        self.machine_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.refresh_machine_list()
+
+    def show_spare_parts(self):
+        """Show the spare part treeview and refresh its data."""
+        self.hide_all_treeviews()
+        self.spare_part_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.refresh_spare_p_list()
+
+    def show_clients(self):
+        """Show the machine treeview and refresh its data."""
+        self.hide_all_treeviews()
+        self.client_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.refresh_client_list()
+
     def refresh_invoice_list(self):
         """Refresh the invoice list."""
-        self.invoice_listbox.delete(0, tk.END)  # Clear the listbox
-        self.cursor.execute("SELECT id, client_id, invoice_date FROM Invoice")
+        self.invoice_treeview.delete(*self.invoice_treeview.get_children())  # Clear the treeview
+        self.cursor.execute("""
+                                SELECT 
+                                    Invoice.id,
+                                    Client.nif,
+                                    Machine.name AS machine_name,
+                                    Task.user,
+                                    Task.hours,
+                                    Invoice.invoice_date
+                                FROM 
+                                    Invoice
+                                JOIN 
+                                    Client ON Invoice.client_id = Client.id
+                                JOIN 
+                                    Task ON Invoice.task_id = Task.id
+                                JOIN 
+                                    TaskMachine ON Task.id = TaskMachine.task_id
+                                JOIN 
+                                    Machine ON TaskMachine.machine_id = Machine.id
+                            """)
         invoices = self.cursor.fetchall()
         for inv in invoices:
-            self.invoice_listbox.insert(tk.END, f"Invoice ID: {inv[0]}, Client ID: {inv[1]}, Date: {inv[2]}")
+            self.invoice_treeview.insert("", tk.END, values=(inv[0], inv[1], inv[2], inv[3], inv[4], inv[5]))
+            # Create a button for each row
+            button = tk.Button(self.root, text="Get ID", command=lambda id=inv[0]: self.get_id(id))
+            button.pack(side=tk.TOP, anchor=tk.W)  # Adjust the position as needed
+
+    def refresh_client_list(self):
+        """Refresh the client list."""
+        self.client_treeview.delete(*self.client_treeview.get_children())  # Clear the treeview
+        self.cursor.execute("SELECT id, registre_comars, nif, nis, ai FROM Client")
+        clients = self.cursor.fetchall()
+        for client in clients:
+            self.client_treeview.insert("", tk.END, values=client)
+
+    def refresh_machine_list(self):
+        """Refresh the machine list."""
+        self.machine_treeview.delete(*self.machine_treeview.get_children())  # Clear the treeview
+        self.cursor.execute("SELECT id, name, model, company, ns FROM Machine")
+        machines = self.cursor.fetchall()
+        for machine in machines:
+            self.machine_treeview.insert("", tk.END, values=machine)
+
+    def refresh_spare_p_list(self):
+        """Refresh the spare part list with machine names."""
+        self.spare_part_treeview.delete(*self.spare_part_treeview.get_children())  # Clear the treeview
+        self.cursor.execute("""
+            SELECT sp.id, sp.name, sp.serial_number, sp.machine_id 
+            FROM SparePart sp
+        """)
+        spare_parts = self.cursor.fetchall()
+        for sp in spare_parts:
+            self.spare_part_treeview.insert("", tk.END, values=sp)
 
     def show_add_client(self):
         self.clear_form_frame()
         self.add_client()
+        self.show_clients()  # Show the client list
 
     def show_add_machine(self):
         self.clear_form_frame()
         self.add_machine()
+        self.show_machines()  # Show the machine list
 
     def show_add_spare_part(self):
         self.clear_form_frame()
         self.add_spare_part()
+        self.show_spare_parts()  # Show the spare part list
 
     def show_add_invoice(self):
         self.clear_form_frame()
         self.add_invoice()
+        self.show_invoices()  # Show the invoice list
 
     def clear_form_frame(self):
         """Clear the form frame before displaying a new form."""
@@ -139,7 +263,7 @@ class InvoiceApp:
                 )
                 self.conn.commit()
                 messagebox.showinfo("Success", "Client added successfully!")
-                self.refresh_invoice_list()  # Refresh the invoice list
+                self.refresh_client_list()  # Refresh the client list
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         
@@ -167,7 +291,7 @@ class InvoiceApp:
                 )
                 self.conn.commit()
                 messagebox.showinfo("Success", "Machine added successfully!")
-                self.refresh_invoice_list()  # Refresh the invoice list
+                self.refresh_machine_list()  # Refresh the machine list
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         
@@ -184,15 +308,20 @@ class InvoiceApp:
 
         # Populate machine dropdown for spare part
         ttk.Label(self.form_frame, text="Select Machine:").grid(row=2, column=0, padx=5, pady=5)
-        machine_var = tk.StringVar()
-        machine_combo = ttk.Combobox(self.form_frame, textvariable=machine_var)
-        machine_combo.grid(row=2, column=1, padx=5, pady=5)
+        self.machine_var = tk.StringVar()
+        self.machine_combo = ttk.Combobox(self.form_frame, textvariable=self.machine_var)
+        self.machine_combo.grid(row=2, column=1, padx=5, pady=5)
+
+        # Fetch machines from the database
         self.cursor.execute("SELECT id, name FROM Machine")
-        machines = self.cursor.fetchall()
-        machine_combo['values'] = [f"{m[0]} - {m[1]}" for m in machines]
+        self.machines = self.cursor.fetchall()  # Store machines for autofill
+        self.machine_combo['values'] = [f"{m[0]} - {m[1]}" for m in self.machines]
+
+        # Bind key release event for autofill
+        self.machine_combo.bind("<KeyRelease>", self.on_machine_keyrelease)
 
         def save_spare_part():
-            machine_id = machine_var.get().split(" - ")[0]
+            machine_id = self.machine_var.get().split(" - ")[0]
             data = [entries[field].get() for field in fields]  # Get data from entries
             try:
                 self.cursor.execute(
@@ -201,7 +330,7 @@ class InvoiceApp:
                 )
                 self.conn.commit()
                 messagebox.showinfo("Success", "Spare part added successfully!")
-                self.refresh_invoice_list()  # Refresh the invoice list
+                self.refresh_spare_p_list()  # Refresh the spare part list
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         
@@ -210,15 +339,16 @@ class InvoiceApp:
     def add_invoice(self):
         # Get clients for dropdown
         self.cursor.execute("SELECT id, registre_comars FROM Client")
-        clients = self.cursor.fetchall()
-        
-        ttk.Label(self.form_frame, text="Client:").grid(row=0, column=0, padx=5, pady=5)
-        client_var = tk.StringVar()
-        self.client_combo = ttk.Combobox(self.form_frame, textvariable=client_var, 
-                                        values=[f"{c[0]} - {c[1]}" for c in clients])
-        self.client_combo.grid(row=0, column=1, padx=5, pady=5)
+        self.clients = self.cursor.fetchall()  # Store clients for autofill
 
-        fields = ["Date (YYYY-MM-DD)", "Description", "User ", "Hours"]
+        ttk.Label(self.form_frame, text="Client:").grid(row=0, column=0, padx=5, pady=5)
+        self.client_var = tk.StringVar()
+        self.client_combo = ttk.Combobox(self.form_frame, textvariable=self.client_var)
+        self.client_combo.grid(row=0, column=1, padx=5, pady=5)
+        self.client_combo['values'] = [f"{c[0]} - {c[1]}" for c in self.clients]
+        self.client_combo.bind("<KeyRelease>", self.on_client_keyrelease)
+
+        fields = ["Date (YYYY-MM-DD)", "Description", "User     ", "Hours"]
         entries = {}
         
         for i, field in enumerate(fields, start=1):
@@ -227,31 +357,31 @@ class InvoiceApp:
             entries[field].grid(row=i, column=1, padx=5, pady=5)
 
         # Set today's date as the default value for the date entry
-        today_date = datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
-        entries["Date (YYYY-MM-DD)"].insert(0, today_date)  # Set the default date
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        entries["Date (YYYY-MM-DD)"].insert(0, today_date)
 
         # Get machines for combo box
         self.cursor.execute("SELECT id, name FROM Machine")
-        machines = self.cursor.fetchall()
-        
+        self.machines = self.cursor.fetchall()  # Store machines for autofill
+
         ttk.Label(self.form_frame, text="Machine:").grid(row=5, column=0, padx=5, pady=5)
-        Machine_var = tk.StringVar()
-        self.Machine_combo = ttk.Combobox(self.form_frame, textvariable=Machine_var, 
-                                        values=[f"{c[0]} - {c[1]}" for c in machines])
-        self.Machine_combo.grid(row=5, column=1, padx=5, pady=5)
-        self.Machine_combo.bind("<<ComboboxSelected>>", self.on_machine_select)  # Bind selection event
+        self.machine_var = tk.StringVar()
+        self.machine_combo = ttk.Combobox(self.form_frame, textvariable=self.machine_var)
+        self.machine_combo.grid(row=5, column=1, padx=5, pady=5)
+        self.machine_combo['values'] = [f"{m[0]} - {m[1]}" for m in self.machines]
+        self.machine_combo.bind("<KeyRelease>", self.on_machine_keyrelease)
 
         # Spare parts list
         ttk.Label(self.form_frame, text="Select Spare Parts:").grid(row=6, column=0, padx=5, pady=5)
         self.spare_part_listbox = tk.Listbox(self.form_frame, selectmode=tk.MULTIPLE, height=5)
         self.spare_part_listbox.grid(row=6, column=1, padx=5, pady=5)
 
-        self.refresh_spare_part_list()  # Populate the listbox with spare parts
+        self.refresh_spare_part_list()
 
         def save_invoice():
             client_id = self.client_combo.get().split(" - ")[0]
-            selected_machine = self.Machine_combo.get().split(" - ")[0]
-            selected_spare_parts_indices = self.spare_part_listbox.curselection()  # Get selected spare parts
+            selected_machine = self.machine_combo.get().split(" - ")[0]
+            selected_spare_parts_indices = self.spare_part_listbox.curselection()
             if not selected_machine:
                 messagebox.showerror("Error", "Please select a machine.")
                 return
@@ -260,14 +390,14 @@ class InvoiceApp:
                 # Insert the task
                 self.cursor.execute(
                     "INSERT INTO Task (description, date, user, hours) VALUES (?, ?, ?, ?)",
-                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User "].get(), entries["Hours"].get())
+                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User     "].get(), entries["Hours"].get())
                 )
                 self.conn.commit()
                 
                 # Get the ID of the newly created task
-                task_id = self.cursor.lastrowid  # Store the new task ID in variable task_id
+                task_id = self.cursor.lastrowid
                 
-                # Insert the machine-task relationship (only one machine)
+                # Insert the machine-task relationship
                 self.cursor.execute(
                     "INSERT INTO TaskMachine (task_id, machine_id) VALUES (?, ?)",
                     (task_id, selected_machine)
@@ -292,26 +422,36 @@ class InvoiceApp:
                 self.conn.commit()
                 
                 messagebox.showinfo("Success", "Invoice added successfully!")
-                self.refresh_invoice_list()  # Refresh the invoice list
+                self.refresh_invoice_list()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to add task or invoice: {str(e)}")
 
-        # Create the button with the custom style
         ttk.Button(self.form_frame, text="Save", command=save_invoice).grid(row=11, columnspan=2, pady=10)
 
+    def on_client_keyrelease(self, event):
+        current_input = self.client_var.get().lower()
+        filtered_clients = [f"{c[0]} - {c[1]}" for c in self.clients if current_input in f"{c[0]} - {c[1]}".lower()]
+        self.client_combo['values'] = filtered_clients
+        if filtered_clients:
+            self.client_combo.current(0)
+
+    def on_machine_keyrelease(self, event):
+        current_input = self.machine_var.get().lower()
+        filtered_machines = [f"{m[0]} - {m[1]}" for m in self.machines if current_input in f"{m[0]} - {m[1]}".lower()]
+        self.machine_combo['values'] = filtered_machines
+        if filtered_machines:
+            self.machine_combo.current(0)
+
     def on_machine_select(self, event):
-        """Update the spare part list based on the selected machine."""
-        selected_machine = self.Machine_combo.get()  # Get the selected machine
+        selected_machine = self.machine_combo.get()
         if selected_machine:
-            machine_id = selected_machine.split(" - ")[0]  # Extract machine ID
-            self.selected_machine_ids = [machine_id]  # Update the selected machine IDs
-            self.refresh_spare_part_list()  # Refresh spare part list based on selected machine
+            machine_id = selected_machine.split(" - ")[0]
+            self.selected_machine_ids = [machine_id]
+            self.refresh_spare_part_list()
 
     def refresh_spare_part_list(self):
-        """Refresh the spare part list based on the selected machines."""
         if self.spare_part_listbox and hasattr(self, 'selected_machine_ids'):
-            self.spare_part_listbox.delete(0, tk.END)  # Clear the listbox
-            # Create a placeholder for the query
+            self.spare_part_listbox.delete(0, tk.END)
             query = "SELECT id, name FROM SparePart WHERE machine_id IN ({})".format(
                 ','.join('?' for _ in self.selected_machine_ids)
             )
