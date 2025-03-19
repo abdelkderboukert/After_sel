@@ -26,7 +26,7 @@ class InvoiceApp:
         self.client_combo = None  # Initialize client_combo to None
         self.machine_listbox = None  # Initialize machine_listbox to None
         self.spare_part_listbox = None  # Initialize spare_part_listbox to None
-        self.selected_machine_id = None  # Track the selected machine ID
+        self.selected_machine_ids = []  # Track the selected machine IDs
 
     def create_tables(self):
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS Client (
@@ -99,10 +99,14 @@ class InvoiceApp:
                 self.machine_listbox.insert(tk.END, f"{m[0]} - {m[1]}")  # Add machines to the listbox
 
     def refresh_spare_part_list(self):
-        """Refresh the spare part list based on the selected machine."""
-        if self.spare_part_listbox and self.selected_machine_id is not None:
+        """Refresh the spare part list based on the selected machines."""
+        if self.spare_part_listbox and self.selected_machine_ids:
             self.spare_part_listbox.delete(0, tk.END)  # Clear the listbox
-            self.cursor.execute("SELECT id, name FROM SparePart WHERE machine_id = ?", (self.selected_machine_id,))
+            # Create a placeholder for the query
+            query = "SELECT id, name FROM SparePart WHERE machine_id IN ({})".format(
+                ','.join('?' for _ in self.selected_machine_ids)
+            )
+            self.cursor.execute(query, self.selected_machine_ids)
             spare_parts = self.cursor.fetchall()
             for sp in spare_parts:
                 self.spare_part_listbox.insert(tk.END, f"{sp[0]} - {sp[1]}")  # Add spare parts to the listbox
@@ -258,7 +262,7 @@ class InvoiceApp:
 
         def save_invoice():
             client_id = self.client_combo.get().split(" - ")[0]
-            selected_machines = self.machine_listbox.curselection()  # Get selected machines
+            selected_machines = self.machine_listbox .curselection()  # Get selected machines
             selected_spare_parts = self.spare_part_listbox.curselection()  # Get selected spare parts
             if not selected_machines:
                 messagebox.showerror("Error", "Please select at least one machine.")
@@ -268,7 +272,7 @@ class InvoiceApp:
                 # Insert the task
                 self.cursor.execute(
                     "INSERT INTO Task (description, date, user, hours) VALUES (?, ?, ?, ?)",
-                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User    "].get(), entries["Hours"].get())
+                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User     "].get(), entries["Hours"].get())
                 )
                 self.conn.commit()
                 
@@ -306,19 +310,18 @@ class InvoiceApp:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to add task or invoice: {str(e)}")
 
-        ttk.Button(window, text="Save", command=save_invoice).grid(row=10, columnspan=2, pady=10)
+        # Create the button with the custom style
+        ttk.Button(window, text="Save", command=save_invoice, style="TButton").grid(row=11, columnspan=2, pady=10)
 
     def on_machine_select(self, event):
-        """Update the spare part list based on the selected machine."""
+        """Update the spare part list based on the selected machines."""
         selected_indices = self.machine_listbox.curselection()
-        if selected_indices:
-            # Get the first selected machine ID
-            selected_machine = self.machine_listbox.get(selected_indices[0])
-            self.selected_machine_id = selected_machine.split(" - ")[0]  # Extract machine ID
-            self.refresh_spare_part_list()  # Refresh spare part list based on selected machine
-        else:
-            self.selected_machine_id = None
-            self.spare_part_listbox.delete(0, tk.END)  # Clear spare part list if no machine is selected
+        self.selected_machine_ids = []  # Reset the selected machine IDs
+        for index in selected_indices:
+            selected_machine = self.machine_listbox.get(index)
+            machine_id = selected_machine.split(" - ")[0]  # Extract machine ID
+            self.selected_machine_ids.append(machine_id)
+        self.refresh_spare_part_list()  # Refresh spare part list based on selected machines
 
     def __del__(self):
         self.conn.close()
