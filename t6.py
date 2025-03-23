@@ -27,10 +27,10 @@ class InvoiceApp:
         ttk.Button(self.navbar_frame, text="Add Spare Part", command=self.show_add_spare_part).pack(side=tk.LEFT, padx=10, pady=5)
         ttk.Button(self.navbar_frame, text="Add Invoice", command=self.show_add_invoice).pack(side=tk.LEFT, padx=10, pady=5)
 
-        # Checkbox for displaying additional information
-        self.show_nif_var = tk.BooleanVar()
-        self.show_nif_checkbox = ttk.Checkbutton(self.navbar_frame, text="Show NIF", variable=self.show_nif_var)
-        self.show_nif_checkbox.pack(side=tk.LEFT, padx=10, pady=5)
+        # # Checkbox for displaying additional information
+        # self.show_nif_var = tk.BooleanVar()
+        # self.show_nif_checkbox = ttk.Checkbutton(self.navbar_frame, text="Show NIF", variable=self.show_nif_var)
+        # self.show_nif_checkbox.pack(side=tk.LEFT, padx=10, pady=5)
 
         # Frame for forms
         self.form_frame = ttk.Frame(self.main_frame)
@@ -45,6 +45,21 @@ class InvoiceApp:
 
         # Show invoices by default
         self.show_invoices()
+
+        # Add remove buttons
+        self.remove_client_button = ttk.Button(self.navbar_frame, text="Remove Client", command=lambda: self.remove_client(self.get_selected_client_id()))
+        self.remove_machine_button = ttk.Button(self.navbar_frame, text="Remove Machine", command=lambda: self.remove_machine(self.get_selected_machine_id()))
+        self.remove_spare_part_button = ttk.Button(self.navbar_frame, text="Remove Spare Part", command=lambda: self.remove_spare_part(self.get_selected_spare_part_id()))
+
+        # Pack the buttons in the navbar
+        self.remove_client_button.pack(side=tk.LEFT, padx=10, pady=5)
+        self.remove_machine_button.pack(side=tk.LEFT, padx=10, pady=5)
+        self.remove_spare_part_button.pack(side=tk.LEFT, padx=10, pady=5)
+
+        # Initially disable the remove buttons
+        self.remove_client_button.config(state=tk.DISABLED)
+        self.remove_machine_button.config(state=tk.DISABLED)
+        self.remove_spare_part_button.config(state=tk.DISABLED)
 
     def create_tables(self):
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS Client (
@@ -100,11 +115,11 @@ class InvoiceApp:
 
     def create_treeviews(self):
         # Create Treeview for Invoices
-        self.invoice_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Client", "Machine", "User   ", "Hours", "Date"), show='headings')
+        self.invoice_treeview = ttk.Treeview(self.list_frame, columns=("ID", "Client", "Machine", "User     ", "Hours", "Date"), show='headings')
         self.invoice_treeview.heading("ID", text="ID")
         self.invoice_treeview.heading("Client", text="Client")
         self.invoice_treeview.heading("Machine", text="Machine")
-        self.invoice_treeview.heading("User   ", text="User   ")
+        self.invoice_treeview.heading("User     ", text="User     ")
         self.invoice_treeview.heading("Hours", text="Hours")
         self.invoice_treeview.heading("Date", text="Date")
         self.invoice_treeview.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -206,6 +221,12 @@ class InvoiceApp:
         clients = self.cursor.fetchall()
         for client in clients:
             self.client_treeview.insert("", tk.END, values=client)
+        
+        # Enable or disable the remove button based on the client list
+        if clients:
+            self.remove_client_button.config(state=tk.NORMAL)
+        else:
+            self.remove_client_button.config(state=tk.DISABLED)
 
     def refresh_machine_list(self):
         """Refresh the machine list."""
@@ -214,6 +235,12 @@ class InvoiceApp:
         machines = self.cursor.fetchall()
         for machine in machines:
             self.machine_treeview.insert("", tk.END, values=machine)
+        
+        # Enable or disable the remove button based on the machine list
+        if machines:
+            self.remove_machine_button.config(state=tk.NORMAL)
+        else:
+            self.remove_machine_button.config(state=tk.DISABLED)
 
     def refresh_spare_p_list(self):
         """Refresh the spare part list with machine names."""
@@ -225,6 +252,12 @@ class InvoiceApp:
         spare_parts = self.cursor.fetchall()
         for sp in spare_parts:
             self.spare_part_treeview.insert("", tk.END, values=sp)
+        
+        # Enable or disable the remove button based on the spare part list
+        if spare_parts:
+            self.remove_spare_part_button.config(state=tk.NORMAL)
+        else:
+            self.remove_spare_part_button.config(state=tk.DISABLED)
 
     def show_add_client(self):
         self.clear_form_frame()
@@ -354,7 +387,7 @@ class InvoiceApp:
         self.client_combo['values'] = [f"{c[0]} - {c[1]}" for c in self.clients]
         self.client_combo.bind("<KeyRelease>", self.on_client_keyrelease)
 
-        fields = ["Date (YYYY-MM-DD)", "Description", "User         ", "Hours"]
+        fields = ["Date (YYYY-MM-DD)", "Description", "User           ", "Hours"]
         entries = {}
         
         for i, field in enumerate(fields, start=1):
@@ -396,7 +429,7 @@ class InvoiceApp:
                 # Insert the task
                 self.cursor.execute(
                     "INSERT INTO Task (description, date, user, hours) VALUES (?, ?, ?, ?)",
-                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User         "].get(), entries["Hours"].get())
+                    (entries["Description"].get(), entries["Date (YYYY-MM-DD)"].get(), entries["User           "].get(), entries["Hours"].get())
                 )
                 self.conn.commit()
                 
@@ -472,7 +505,7 @@ class InvoiceApp:
                 "ID": item[0],
                 "Client": item[1],
                 "Machine": item[2],
-                "User  ": item[3],
+                "User    ": item[3],
                 "Hours": item[4],
                 "Date": item[5]
             })
@@ -482,38 +515,159 @@ class InvoiceApp:
         if selected_item:
             item = self.client_treeview.item(selected_item, 'values')  # Get the values of the selected client
             client_id = item[0]  # Get the ID of the selected client
-            self.cursor.execute("SELECT * FROM Client WHERE id = ?", (client_id,))
-            client_details = self.cursor.fetchone()  # Fetch the complete client record
-            self.show_id_window("Client Details", {
-                "ID": client_details[0],
-                "Registre Comars": client_details[1],
-                "NIF": client_details[2],
-                "NIS": client_details[3],
-                "AI": client_details[4]
-            })
+            self.show_edit_client(client_id)  # Show edit form
 
     def on_machine_double_click(self, event):
         selected_item = self.machine_treeview.selection()
         if selected_item:
             item = self.machine_treeview.item(selected_item, 'values')  # Get the values of the selected machine
-            self.show_id_window("Machine Details", {
-                "ID": item[0],
-                "Name": item[1],
-                "Model": item[2],
-                "Company": item[3],
-                "NS": item[4]
-            })
+            machine_id = item[0]  # Get the ID of the selected machine
+            self.show_edit_machine(machine_id)  # Show edit form
 
     def on_spare_part_double_click(self, event):
         selected_item = self.spare_part_treeview.selection()
         if selected_item:
             item = self.spare_part_treeview.item(selected_item, 'values')  # Get the values of the selected spare part
-            self.show_id_window("Spare Part Details", {
-                "ID": item[0],
-                "Name": item[1],
-                "Serial Number": item[2],
-                "Machine ID": item[3]
-            })
+            spare_part_id = item[0]  # Get the ID of the selected spare part
+            self.show_edit_spare_part(spare_part_id)  # Show edit form
+
+    def show_edit_client(self, client_id):
+        """Show the edit form for a client."""
+        self.clear_form_frame()
+        self.cursor.execute("SELECT * FROM Client WHERE id = ?", (client_id,))
+        client = self.cursor.fetchone()
+        
+        fields = ["Registre Comars", "NIF", "NIS", "AI"]
+        entries = {}
+        
+        for i, field in enumerate(fields):
+            ttk.Label(self.form_frame, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
+            entries[field] = ttk.Entry(self.form_frame)
+            entries[field].grid(row=i, column=1, padx=5, pady=5)
+            entries[field].insert(0, client[i + 1])  # Fill with existing data
+
+        def save_client():
+            data = [entries[field].get() for field in fields]
+            try:
+                self.cursor.execute(
+                    "UPDATE Client SET registre_comars = ?, nif = ?, nis = ?, ai = ? WHERE id = ?",
+                    (*data, client_id)
+                )
+                self.conn.commit()
+                messagebox.showinfo("Success", "Client updated successfully!")
+                self.refresh_client_list()  # Refresh the client list
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+        ttk.Button(self.form_frame, text="Save", command=save_client).grid(row=len(fields), columnspan=2, pady=10)
+
+    def remove_client(self, client_id):
+        """Remove a client from the database."""
+        try:
+            self.cursor.execute("DELETE FROM Client WHERE id = ?", (client_id,))
+            self.conn.commit()
+            messagebox.showinfo("Success", "Client removed successfully!")
+            self.refresh_client_list()  # Refresh the client list
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def show_edit_machine(self, machine_id):
+        """Show the edit form for a machine."""
+        self.clear_form_frame()
+        self.cursor.execute("SELECT * FROM Machine WHERE id = ?", (machine_id,))
+        machine = self.cursor.fetchone()
+        
+        fields = ["Name", "Model", "Company", "NS"]
+        entries = {}
+        
+        for i, field in enumerate(fields):
+            ttk.Label(self.form_frame, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
+            entries[field] = ttk.Entry(self.form_frame)
+            entries[field].grid(row=i, column=1, padx=5, pady=5)
+            entries[field].insert(0, machine[i + 1])  # Fill with existing data
+
+        def save_machine():
+            data = [entries[field].get() for field in fields]
+            try:
+                self.cursor.execute(
+                    "UPDATE Machine SET name = ?, model = ?, company = ?, ns = ? WHERE id = ?",
+                    (*data, machine_id)
+                )
+                self.conn.commit()
+                messagebox.showinfo("Success", "Machine updated successfully!")
+                self.refresh_machine_list()  # Refresh the machine list
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+        ttk.Button(self.form_frame, text="Save", command=save_machine).grid(row=len(fields), columnspan=2, pady=10)
+
+    def remove_machine(self, machine_id):
+        """Remove a machine from the database."""
+        try:
+            self.cursor.execute("DELETE FROM Machine WHERE id = ?", (machine_id,))
+            self.conn.commit()
+            messagebox.showinfo("Success", "Machine removed successfully!")
+            self.refresh_machine_list()  # Refresh the machine list
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def show_edit_spare_part(self, spare_part_id):
+        """Show the edit form for a spare part."""
+        self.clear_form_frame()
+        self.cursor.execute("SELECT * FROM SparePart WHERE id = ?", (spare_part_id,))
+        spare_part = self.cursor.fetchone()
+        
+        fields = ["Name", "Serial Number"]
+        entries = {}
+        
+        for i, field in enumerate(fields):
+            ttk.Label(self.form_frame, text=f"{field}:").grid(row=i, column=0, padx=5, pady=5)
+            entries[field] = ttk.Entry(self.form_frame)
+            entries[field].grid(row=i, column=1, padx=5, pady=5)
+            entries[field].insert(0, spare_part[i + 1])  # Fill with existing data
+
+        # Populate machine dropdown for spare part
+        ttk.Label(self.form_frame, text="Select Machine:").grid(row=2, column=0, padx=5, pady=5)
+        self.machine_var = tk.StringVar()
+        self.machine_combo = ttk.Combobox(self.form_frame, textvariable=self.machine_var)
+        self.machine_combo.grid(row=2, column=1, padx=5, pady=5)
+
+        # Fetch machines from the database
+        self.cursor.execute("SELECT id, name FROM Machine")
+        self.machines = self.cursor.fetchall()  # Store machines for autofill
+        self.machine_combo['values'] = [f"{m[0]} - {m[1]}" for m in self.machines]
+        self.machine_combo.set(f"{spare_part[3]} - {self.get_machine_name(spare_part[3])}")  # Set current machine
+
+        def save_spare_part():
+            machine_id = self.machine_var.get().split(" - ")[0]
+            data = [entries[field].get() for field in fields]  # Get data from entries
+            try:
+                self.cursor.execute(
+                    "UPDATE SparePart SET name = ?, serial_number = ?, machine_id = ? WHERE id = ?",
+                    (*data, machine_id, spare_part_id)
+                )
+                self.conn.commit()
+                messagebox.showinfo("Success", "Spare part updated successfully!")
+                self.refresh_spare_p_list()  # Refresh the spare part list
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+        ttk.Button(self.form_frame, text="Save", command=save_spare_part).grid(row=3, columnspan=2, pady=10)
+
+    def remove_spare_part(self, spare_part_id):
+        """Remove a spare part from the database."""
+        try:
+            self.cursor.execute("DELETE FROM SparePart WHERE id = ?", (spare_part_id,))
+            self.conn.commit()
+            messagebox.showinfo("Success", "Spare part removed successfully!")
+            self.refresh_spare_p_list()  # Refresh the spare part list
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def get_machine_name(self, machine_id):
+        """Get the name of a machine by its ID."""
+        self.cursor.execute("SELECT name FROM Machine WHERE id = ?", (machine_id,))
+        return self.cursor.fetchone()[0]
 
     def show_id_window(self, title, details):
         """Create a new window to display the details of the selected item."""
@@ -526,10 +680,28 @@ class InvoiceApp:
 
         ttk.Button(id_window, text="Close", command=id_window.destroy).pack(pady=10)
 
-    def __del__(self):
-        self.conn.close()
+    def get_selected_client_id(self):
+        selected_item = self.client_treeview.selection()
+        if selected_item:
+            return self.client_treeview.item(selected_item, 'values')[0]
+        return None
+
+    def get_selected_machine_id(self):
+        selected_item = self.machine_treeview.selection()
+        if selected_item:
+            return self.machine_treeview.item(selected_item, 'values')[0]
+        return None
+
+    def get_selected_spare_part_id(self):
+        selected_item = self.spare_part_treeview.selection()
+        if selected_item:
+            return self.spare_part_treeview.item(selected_item, 'values')[0]
+        return None
+
+    def run(self):
+        self.root.mainloop()
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = InvoiceApp(root)
-    root.mainloop()
+    app.run()
